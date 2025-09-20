@@ -2,11 +2,21 @@
 class PhysicsSystem {
     constructor(scene) {
         this.scene = scene;
+        if (typeof CANNON === 'undefined') {
+            throw new Error('CANNON.js library is required but not loaded.');
+        }
+
         this.world = new CANNON.World();
         this.world.gravity.set(0, -9.82, 0); // Earth's gravity
         this.world.broadphase = new CANNON.NaiveBroadphase();
         this.world.solver.iterations = 10;
-        this.world.defaultContactMaterial.friction = 0.5;
+        if (this.world.defaultContactMaterial) {
+            this.world.defaultContactMaterial.friction = 0.5;
+            this.world.defaultContactMaterial.restitution = 0.3;
+        }
+
+        this.fixedTimeStep = 1 / 60; // 60 Hz simulation
+        this.maxSubSteps = 3;
         
         // Create materials
         this.groundMaterial = new CANNON.Material('ground');
@@ -35,7 +45,7 @@ class PhysicsSystem {
     
     update(deltaTime) {
         // Step the physics simulation
-        this.world.step(deltaTime);
+        this.world.step(this.fixedTimeStep, deltaTime, this.maxSubSteps);
         
         // Update meshes based on body positions
         for (let i = 0; i < this.bodies.length; i++) {
